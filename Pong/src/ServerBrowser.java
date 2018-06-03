@@ -1,3 +1,4 @@
+import networkpackets.JoinResponseType;
 import networkpackets.client.JoinRequest;
 import networkpackets.client.JoinResponse;
 import utils.Utils;
@@ -36,6 +37,7 @@ public class ServerBrowser
 
         ByteBuffer buffer = ByteBuffer.allocate(512);
         int received = 0;
+        int paddleIndex = -1;
         do
         {
             received = socket.receive(buffer);
@@ -49,10 +51,15 @@ public class ServerBrowser
                     JoinResponse response = (JoinResponse)object;
 
                     System.out.println("Join response: "+response.getJoinResponseType());
+                    if (response.getJoinResponseType() != JoinResponseType.OK)
+                        return;
+
+                    paddleIndex = response.getPaddle();
+                    System.out.println("Paddle index: "+paddleIndex);
                 }
             }
         } while (received == 0);
 
-        new Pong(socket).start();
+        new Pong(clientID, socket, paddleIndex).start();
     }
 }

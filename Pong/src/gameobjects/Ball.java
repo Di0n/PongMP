@@ -30,6 +30,7 @@ public class Ball extends GameObject
         double maxX = Game.PLAY_AREA.width - getWidth();
         double maxY = Game.PLAY_AREA.height - getHeight();
 
+        /*
         if (position.x < 0)
         {
             position.x = 0;
@@ -39,7 +40,7 @@ public class Ball extends GameObject
         {
             position.x = maxX;
             velocity.x *= -1;
-        }
+        }*/
         if (position.y < 0)
         {
             position.y = 0;

@@ -1,7 +1,6 @@
 package networkpackets.client;
 
 import networkpackets.JoinResponseType;
-import org.omg.CORBA.PRIVATE_MEMBER;
 
 import java.io.Serializable;
 
@@ -26,4 +25,8 @@ public class JoinResponse implements Serializable
         return joinResponseType;
     }
 
+    public int getPaddle()
+    {
+        return paddle;
+    }
 }

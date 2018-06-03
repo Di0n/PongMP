@@ -6,6 +6,7 @@ import gameobjects.Ball;
 import gameobjects.GameObject;
 import gameobjects.Paddle;
 import gameobjects.Vector2;
+import networkpackets.GameScore;
 import networkpackets.GameState;
 import networkpackets.gameobjects.BallPacket;
 import networkpackets.gameobjects.PaddlePacket;
@@ -20,6 +21,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class Pong extends Game
 {
@@ -35,6 +37,7 @@ public class Pong extends Game
 
     private final GameKeyListener keyListener;
     private final UDPClient socket;
+    private final UUID clientID;
     private long lastHeartbeatTime;
 
     // ** GAME_OBJECTS *** \\
@@ -44,11 +47,15 @@ public class Pong extends Game
     private Ball ball;
     private Paddle leftPaddle;
     private Paddle rightPaddle;
+    private Paddle playerPaddle;
 
     private ArrayList<GameObject> gameObjects;
 
+    private final int paddleIndex;
+    private int myScore;
+    private int enemyScore;
 
-    public Pong(UDPClient socket)
+    public Pong(UUID clientID, UDPClient socket, int paddleIndex)
     {
         super(GAME_NAME, FPS);
         super.antiAliasing = true;
@@ -57,7 +64,8 @@ public class Pong extends Game
         this.lastHeartbeatTime = System.currentTimeMillis();
         this.frameRateCounter = new FrameRateCounter();
         this.gameObjects = new ArrayList<>();
-
+        this.paddleIndex = paddleIndex;
+        this.clientID = clientID;
         this.socket = socket;
     }
 
@@ -90,6 +98,7 @@ public class Pong extends Game
 
         leftPaddle = new Paddle(paddleImage, 1);
         rightPaddle = new Paddle(paddleImage, 1);
+        playerPaddle = paddleIndex == 0 ? leftPaddle : rightPaddle;
 
         gameObjects.add(ball);
         gameObjects.add(leftPaddle);
@@ -127,6 +136,23 @@ public class Pong extends Game
 
             ball.position.x = leftPaddle.position.x + leftPaddle.getWidth();
         }
+        else if (ball.hasCollided(rightPaddle))
+        {
+            System.out.println("right hit");
+
+            ball.velocity.x += 50;
+
+
+            if (ball.velocity.y < 0)
+                ball.velocity.y -= 50;
+            else
+                ball.velocity.y += 50;
+
+            ball.velocity.x *= -1;
+
+            ball.position.x = rightPaddle.position.x - rightPaddle.getWidth();
+        }
+
 
         //leftPaddle.velocity = Vector2.zero;
         //rightPaddle.velocity = Vector2.zero;
@@ -135,7 +161,7 @@ public class Pong extends Game
     }
 
     private boolean lastUp, lastDown;
-    private Vector2 paddleVelocity = new Vector2(0, 500);
+    private final Vector2 paddleVelocity = new Vector2(0, 500);
     private void handleUserInput(double deltaTime)
     {
         if (keyListener.isKeyDown(KeyEvent.VK_UP))
@@ -144,7 +170,7 @@ public class Pong extends Game
             //leftPaddle.velocity = paddleVelocity.negative();
             if (!lastUp)
             {
-                leftPaddle.velocity = paddleVelocity.negative();
+                playerPaddle.velocity = paddleVelocity.negative();
                 PlayerInput playerInput = new PlayerInput(PlayerInputType.MOVE_UP);
                 socket.send(Utils.createByteArray(playerInput));
                 lastUp = true;
@@ -152,7 +178,7 @@ public class Pong extends Game
         }
         else if (lastUp)
         {
-            leftPaddle.velocity = Vector2.zero;
+            playerPaddle.velocity = Vector2.zero;
             PlayerInput playerInput = new PlayerInput(PlayerInputType.STOPPED_MOVING);
             socket.send(Utils.createByteArray(playerInput));
             lastUp = false;
@@ -163,7 +189,7 @@ public class Pong extends Game
             ///leftPaddle.position = leftPaddle.position.add(leftPaddle.velocity.multiply(deltaTime));
             if (!lastDown)
             {
-                leftPaddle.velocity = paddleVelocity;
+                playerPaddle.velocity = paddleVelocity;
                 PlayerInput playerInput = new PlayerInput(PlayerInputType.MOVE_DOWN);
                 socket.send(Utils.createByteArray(playerInput));
                 lastDown = true;
@@ -171,7 +197,7 @@ public class Pong extends Game
         }
         else if (lastDown)
         {
-            leftPaddle.velocity = Vector2.zero;
+            playerPaddle.velocity = Vector2.zero;
             PlayerInput playerInput = new PlayerInput(PlayerInputType.STOPPED_MOVING);
             socket.send(Utils.createByteArray(playerInput));
             lastDown = false;
@@ -193,6 +219,8 @@ public class Pong extends Game
         g2d.setColor(Color.WHITE);
         g2d.drawString(""+Math.round(frameRateCounter.getAverageFramesPerSecond()), 10, 10);
 
+        g2d.drawString(""+myScore, getWidth() / 3, 10);
+        g2d.drawString(""+enemyScore, getWidth() - (getWidth() / 4), 10);
         g2d.setColor(Color.RED);
         DebugDraw.draw(g2d, gameObjects);
     }
@@ -209,9 +237,20 @@ public class Pong extends Game
 
             if (packet instanceof GameState)
             {
-                GameState gamePacket = (GameState)packet;
+                GameState gamePacket = (GameState) packet;
                 //System.out.println(gamePacket.ballPacket.velocityX);
                 setGameState(gamePacket);
+            }
+            else if (packet instanceof GameScore)
+            {
+                GameScore gs = (GameScore)packet;
+
+                if (gs.getClient() == clientID)
+                {
+                    myScore++;
+                }
+                else
+                    enemyScore++;
             }
         }
     }

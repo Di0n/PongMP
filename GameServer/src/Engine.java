@@ -145,7 +145,10 @@ public abstract class Engine
 
     public void onPlayerConnect(final Player player, JoinResponseType joinResponseType)
     {
-        JoinResponse jr = new JoinResponse(joinResponseType);
+        JoinResponse jr = joinResponseType == JoinResponseType.OK ?
+                new JoinResponse(joinResponseType, players.size()) :
+                new JoinResponse(joinResponseType);
+
         byte[] buffer = Utils.createByteArray(jr);
         socket.send(buffer, player.getSocketAddress());
 
@@ -187,5 +190,10 @@ public abstract class Engine
         {
             socket.send(bytes, player.getSocketAddress());
         }
+    }
+
+    public final void sendToPlayer(byte[] bytes, Player player)
+    {
+        socket.send(bytes, player.getSocketAddress());
     }
 }
