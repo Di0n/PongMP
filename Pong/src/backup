@@ -1,0 +1,70 @@
+ private final UUID clientID;
+    private UDPClient socket;
+    private InetSocketAddress serverAddress = new InetSocketAddress("localhost", 14567);
+    private ByteBuffer buffer;
+
+    public Pong()
+    {
+        socket = new UDPClient(false, serverAddress);
+        socket.initialize();
+        clientID = UUID.randomUUID();
+        buffer = ByteBuffer.allocate(512);
+    }
+    private void run()
+    {
+        JoinRequest request = new JoinRequest(clientID, "Dion");
+
+        byte[] bytes = Utils.createByteArray(request);
+
+        int sent = socket.send(bytes);
+        System.out.println("Sent join request: "+sent);
+
+        int received = 0;
+        do
+        {
+            received = socket.receive(buffer);
+
+            if (received > 0)
+            {
+                Object object = Utils.createObject(buffer.array());
+
+                if (object instanceof JoinResponse)
+                {
+                    JoinResponse response = (JoinResponse)object;
+
+                    System.out.println("Join response: "+response.getJoinResponseType());
+                }
+            }
+        } while (received == 0);
+
+        System.out.println("Waiting 5 seconds...");
+
+        yield(5000);
+
+        PlayerInput playerInput = new PlayerInput(PlayerInputType.MOVE_UP);
+        sent = socket.send(Utils.createByteArray(playerInput));
+
+        System.out.println("Move up...");
+        yield(4000);
+
+        System.out.println("Disconnecting...");
+        playerInput = new PlayerInput(PlayerInputType.DISCONNECT);
+
+        sent = socket.send(Utils.createByteArray(playerInput));
+
+        System.out.println("DC Sent: "+sent);
+    }
+
+    private void yield(int ms)
+    {
+        synchronized (this)
+        {
+            try
+            {
+                wait(ms);
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
