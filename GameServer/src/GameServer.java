@@ -11,10 +11,8 @@ import networkpackets.server.GameEnded;
 import utils.Utils;
 
 import java.awt.*;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class GameServer extends Engine
 {
@@ -30,6 +28,7 @@ public class GameServer extends Engine
     private ArrayList<GameObject> gameObjects = new ArrayList<>();
     private Ball ball;
     private Paddle leftPaddle, rightPaddle;
+    private boolean gameEnded;
 
 
     public GameServer(int tickRate)
@@ -74,12 +73,13 @@ public class GameServer extends Engine
     @Override
     public void update(double deltaTime)
     {
-        if (players.size() != 2) return; // Players size
+        if (players.size() != 2 || gameEnded) return; // Players size
 
         if (!started)
         {
             onGameStart();
             started = true;
+            gameEnded = false;
         }
 
         if (scored)
@@ -150,7 +150,9 @@ public class GameServer extends Engine
 
     private void launchBall()
     {
-        ball.velocity = new Vector2(300, 100);
+        final int randX = ThreadLocalRandom.current().nextInt(2);
+        final int randY = ThreadLocalRandom.current().nextInt(2, 4);
+        ball.velocity = new Vector2( randX == 0 ? 300 : -300, randY == 2 ? 100 : -100);
     }
     private void onGameStart()
     {
@@ -161,22 +163,36 @@ public class GameServer extends Engine
         launchBall();
     }
 
-    private Map<Player, Integer> scores = new HashMap<>();
+    private Map<UUID, Integer> scores = new HashMap<>();
     private void onPoint(Player player)
     {
-        GameScore point = new GameScore(player.getClientID());
-        sendToAllPlayers(Utils.createByteArray(point));
+        scores.put(player.getClientID(), scores.containsKey(player.getClientID()) ? scores.get(player.getClientID())+1 : 1);
+        if (scores.get(player.getClientID()) == 5)
+        {
+            GameEnded gameEnded = new GameEnded(GameEnded.EndReason.SCORE, player.getClientID());
+            sendToAllPlayers(Utils.createByteArray(gameEnded));
+            onGameEnd();
+        }
+        else
+        {
+            GameScore point = new GameScore(scores);
+            sendToAllPlayers(Utils.createByteArray(point));
+        }
     }
 
     private void onGameEnd()
     {
         started = false;
+        gameEnded = true;
+        scores.clear();
     }
 
+
+    private final Vector2 paddleVelocity = new Vector2(0, 500);
     @Override
     public void onPlayerInput(Player player, PlayerInputType playerInput)
     {
-        System.out.println("Player input received from: "+player.getName() + "\nInput: "+playerInput);
+        //System.out.println("Player input received from: "+player.getName() + "\nInput: "+playerInput);
 
         int paddle = players.indexOf(player);
         switch (playerInput)
@@ -184,17 +200,17 @@ public class GameServer extends Engine
             case MOVE_UP:
             {
                 if (paddle == 0)
-                    leftPaddle.velocity = new Vector2(0, -500);
+                    leftPaddle.velocity = paddleVelocity.negative();
                 else if (paddle == 1)
-                    rightPaddle.velocity = new Vector2(0, -500);
+                    rightPaddle.velocity = paddleVelocity.negative();
             }
             break;
             case MOVE_DOWN:
             {
                 if (paddle == 0)
-                    leftPaddle.velocity = new Vector2(0, 500);
+                    leftPaddle.velocity = paddleVelocity;
                 else if (paddle == 1)
-                    rightPaddle.velocity = new Vector2(0, 500);
+                    rightPaddle.velocity = paddleVelocity;
             }
             break;
             case STOPPED_MOVING:
@@ -212,7 +228,7 @@ public class GameServer extends Engine
 
     public void onPlayerConnect(Player player, JoinResponseType responseType)
     {
-        System.out.println(player.getName() + " wants to connect.");
+        System.out.println(player.getName() + " wants to connect.\nIP: "+player.getSocketAddress());
         if (players.size() < 2)
         {
             super.onPlayerConnect(player, JoinResponseType.OK);
@@ -231,7 +247,12 @@ public class GameServer extends Engine
 
         if (players.size() > 0)
             sendToAllPlayers(Utils.createByteArray(new GameEnded(GameEnded.EndReason.FORFEIT)));
-        
+        else
+        {
+            started = false;
+            resetPositions();
+        }
+
         System.out.println(player.getName()+ " disconnected from the server.\nReason: "+reason);
     }
 
@@ -240,6 +261,7 @@ public class GameServer extends Engine
     {
 
     }
+
 
     /*
     public void handleReceive()
