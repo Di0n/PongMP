@@ -27,18 +27,19 @@ public class InfoSupplier implements Runnable
             InfoRequest ir = (InfoRequest)packet;
 
             InfoResponse infoResponse = new InfoResponse();
-            /*switch (ir)
+
+            switch (ir.getFlags())
             {
-                case SERVER_INFO:
+                case InfoRequest.SERVER_INFO:
                     infoResponse.setServerInfo("Server info sdkljaskljdklasjdlkasdklasd.");
                     break;
-                case PING:
+                case InfoRequest.PING:
                     // stuur leeg pakket
                     break;
-                case SERVER_BANNER:
+                case InfoRequest.SERVER_BANNER:
                     infoResponse.setBannerURL("http://brandmark.io/logo-rank/random/pepsi.png");
                     break;
-            }*/
+            }
         }
     }
 }
