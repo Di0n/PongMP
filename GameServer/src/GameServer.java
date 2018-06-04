@@ -28,7 +28,6 @@ public class GameServer extends Engine
     private ArrayList<GameObject> gameObjects = new ArrayList<>();
     private Ball ball;
     private Paddle leftPaddle, rightPaddle;
-    private boolean gameEnded;
 
 
     public GameServer()
@@ -73,13 +72,12 @@ public class GameServer extends Engine
     @Override
     public void update(double deltaTime)
     {
-        if (players.size() != 2 || gameEnded) return; // Players size
+        if (players.size() != 2) return; // Players size
 
         if (!started)
         {
             onGameStart();
             started = true;
-            gameEnded = false;
         }
 
         if (scored)
@@ -159,6 +157,7 @@ public class GameServer extends Engine
         // Verstuur start signaal aan spelers
         // * Welke positie? Rechts/links
         // * Bal positie
+        started = true;
         resetPositions();
         launchBall();
     }
@@ -183,7 +182,6 @@ public class GameServer extends Engine
     private void onGameEnd()
     {
         started = false;
-        gameEnded = true;
         scores.clear();
     }
 
