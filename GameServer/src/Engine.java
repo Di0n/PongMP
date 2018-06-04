@@ -51,6 +51,9 @@ public abstract class Engine
 
     public final void start()
     {
+        //Thread thread = new Thread(new InfoSupplier(this));
+        //thread.start();
+
         TimerTask task = new TimerTask()
         {
             @Override
@@ -128,7 +131,8 @@ public abstract class Engine
         } else if (packetObject instanceof InfoRequest)
         {
             // TODO info teruggeven
-
+            InfoRequest ir = (InfoRequest)packetObject;
+            onRequestInfo(receiverAddress, ir);
         }
     }
 
