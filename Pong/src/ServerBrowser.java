@@ -5,6 +5,7 @@ import utils.Utils;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.UUID;
 
 public class ServerBrowser
@@ -24,7 +25,7 @@ public class ServerBrowser
         // set visible
         String local = "localhost";
         String server = "server.anveon.nl";
-        UDPClient socket = new UDPClient(false, new InetSocketAddress(local, 14567));
+        UDPClient socket = new UDPClient(false, new InetSocketAddress(server, 14567));
         socket.initialize();
 
         UUID clientID = UUID.randomUUID();
@@ -49,7 +50,6 @@ public class ServerBrowser
                 if (object instanceof JoinResponse)
                 {
                     JoinResponse response = (JoinResponse)object;
-
                     System.out.println("Join response: "+response.getJoinResponseType());
                     if (response.getJoinResponseType() != JoinResponseType.OK)
                         return;
@@ -61,5 +61,36 @@ public class ServerBrowser
         } while (received == 0);
 
         new Pong(clientID, socket, paddleIndex).start();
+       /*AbstractMap.SimpleEntry<JoinResponseType, Integer> resp = join(socket);
+
+
+       if (resp.getKey() == JoinResponseType.OK)
+           new Pong(clientID, socket, resp.getValue()).start();*/
+    }
+
+    private ByteBuffer buffer = ByteBuffer.allocate(512);
+    private AbstractMap.SimpleEntry<JoinResponseType, Integer> join(UDPClient socket)
+    {
+        int received = socket.receive(buffer);
+
+        if (received > 0)
+        {
+            int paddleIndex = -1;
+            Object object = Utils.createObject(buffer.array());
+
+            if (object instanceof JoinResponse)
+            {
+                JoinResponse response = (JoinResponse)object;
+                System.out.println("Join response: "+response.getJoinResponseType());
+                if (response.getJoinResponseType() != JoinResponseType.OK)
+                    return new AbstractMap.SimpleEntry<JoinResponseType, Integer>(response.getJoinResponseType(), paddleIndex);
+
+                paddleIndex = response.getPaddle();
+                System.out.println("Paddle index: "+paddleIndex);
+
+                return new AbstractMap.SimpleEntry<JoinResponseType, Integer>(response.getJoinResponseType(), paddleIndex);
+            }
+        }
+            return join(socket);
     }
 }

@@ -2,7 +2,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.UUID;
 
-public class Player
+public class Player implements Comparable<Player>
 {
     private final UUID clientID;
     private final InetSocketAddress socketAddress;
@@ -52,6 +52,12 @@ public class Player
                 ", name='" + name + '\'' +
                 ", lastPacketReceived=" + lastPacketReceived +
                 '}';
+    }
+
+    @Override
+    public int compareTo(Player p)
+    {
+        return this.name.compareTo(p.name);
     }
 
     /* @Override

@@ -134,10 +134,10 @@ public abstract class Game extends JFrame implements ActionListener
     {
         g2d.setColor(Color.BLACK);
 
-        /*final int width = canvas.getWidth();
+        final int width = canvas.getWidth();
         final int height = canvas.getHeight();
 
-        g2d.fillRect(-width / 2, -height / 2, width, height);*/
+        g2d.fillRect(-width / 2, -height / 2, width, height);
     }
 
 

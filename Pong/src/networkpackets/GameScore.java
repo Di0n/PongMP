@@ -1,22 +1,20 @@
 package networkpackets;
 
-import networkpackets.player.PlayerInfo;
-
 import java.io.Serializable;
-import java.util.AbstractMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class GameScore implements Serializable
 {
-    private final UUID client;
+    private final Map<UUID, Integer> scores;
 
-    public GameScore(UUID clientID)
+    public GameScore(Map<UUID, Integer> scores)
     {
-        this.client = clientID;
+        this.scores = scores;
     }
 
-    public UUID getClient()
+    public Map<UUID, Integer> getScores()
     {
-        return client;
+        return scores;
     }
 }

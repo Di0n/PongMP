@@ -1,5 +1,9 @@
 package utils;
 
+import com.sun.org.apache.regexp.internal.RE;
+import networkpackets.client.InfoResponse;
+import sun.awt.OSInfo;
+
 import java.io.*;
 
 public class Utils
@@ -48,4 +52,18 @@ public class Utils
         }
         return bytes;
     }
+
+    public static InfoResponse.OS getOS()
+    {
+        String osName = System.getProperty("os.name").toUpperCase();
+
+        if (osName.contains("WINDOWS"))
+            return InfoResponse.OS.WINDOWS;
+        else if (osName.contains("LINUX"))
+            return InfoResponse.OS.LINUX;
+        else if (osName.contains("MAC"))
+            return InfoResponse.OS.MAC_OS;
+        else return InfoResponse.OS.UNKNOWN;
+    }
+
 }

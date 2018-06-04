@@ -12,15 +12,19 @@ import networkpackets.gameobjects.BallPacket;
 import networkpackets.gameobjects.PaddlePacket;
 import networkpackets.player.PlayerInput;
 import networkpackets.player.PlayerInputType;
+import networkpackets.server.GameEnded;
 import utils.Utils;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class Pong extends Game
@@ -30,7 +34,7 @@ public class Pong extends Game
         //new Pong().start();
     }
 
-    private static final int FPS = 59;
+    private static final int FPS = 144;
     private static final String GAME_NAME = "Pong";
 
     private final FrameRateCounter frameRateCounter;
@@ -54,6 +58,7 @@ public class Pong extends Game
     private final int paddleIndex;
     private int myScore;
     private int enemyScore;
+    private boolean gameEnded;
 
     public Pong(UUID clientID, UDPClient socket, int paddleIndex)
     {
@@ -183,7 +188,7 @@ public class Pong extends Game
             socket.send(Utils.createByteArray(playerInput));
             lastUp = false;
         }
-        if (keyListener.isKeyDown(KeyEvent.VK_DOWN))
+        else if (keyListener.isKeyDown(KeyEvent.VK_DOWN))
         {
             //leftPaddle.velocity = paddleVelocity;
             ///leftPaddle.position = leftPaddle.position.add(leftPaddle.velocity.multiply(deltaTime));
@@ -202,13 +207,9 @@ public class Pong extends Game
             socket.send(Utils.createByteArray(playerInput));
             lastDown = false;
         }
-
-        if (keyListener.isKeyDown(KeyEvent.VK_SPACE))
-        {
-            ball.velocity = new Vector2(200, 100);
-        }
     }
 
+    private GameEnded.EndReason endReason;
     @Override
     protected void draw(Graphics2D g2d)
     {
@@ -219,13 +220,46 @@ public class Pong extends Game
         g2d.setColor(Color.WHITE);
         g2d.drawString(""+Math.round(frameRateCounter.getAverageFramesPerSecond()), 10, 10);
 
-        g2d.drawString(""+myScore, getWidth() / 3, 10);
-        g2d.drawString(""+enemyScore, getWidth() - (getWidth() / 4), 10);
-        g2d.setColor(Color.RED);
-        DebugDraw.draw(g2d, gameObjects);
+
+        int sideX = (paddleIndex == 0) ? getWidth() / 3 : getWidth() - (getWidth() / 4);
+        int enemySideX = (paddleIndex == 0) ? getWidth() - (getWidth() / 4) : getWidth() / 3;
+        int sideY = 10;
+
+        g2d.drawString(Integer.toString(myScore), sideX, sideY);
+        g2d.drawString(Integer.toString(enemyScore), enemySideX, sideY);
+
+        if (gameEnded)
+        {
+            if (endReason == GameEnded.EndReason.SCORE)
+            {
+                if (myScore > enemyScore)
+                {
+                    Hud.drawTextThisFrame(g2d, "You won!", 50,
+                            new Point2D.Double(getWidth() / 2, getHeight() / 2),
+                            "Magneto", Font.BOLD);
+                } else if (myScore == enemyScore)
+                {
+                    Hud.drawTextThisFrame(g2d, "It's a tie!", 50,
+                            new Point2D.Double(getWidth() / 2, getHeight() / 2),
+                            "Magneto", Font.BOLD);
+                }
+                else
+                {
+                    Hud.drawTextThisFrame(g2d, "You lost!", 50,
+                            new Point2D.Double(getWidth() / 2, getHeight() / 2),
+                            "Magneto", Font.BOLD);
+                }
+            }
+            else
+                Hud.drawTextThisFrame(g2d, "Enemy left the game!", 50,
+                        new Point2D.Double(getWidth() / 2, getHeight() / 2),
+                        "Magneto", Font.BOLD);
+        }
+        //g2d.setColor(Color.RED);
+        //DebugDraw.draw(g2d, gameObjects);
     }
 
-
+    private Map<UUID, Integer> scores = new HashMap<>();
     private ByteBuffer buffer = ByteBuffer.allocate(512);
     private void receiveData()
     {
@@ -244,13 +278,34 @@ public class Pong extends Game
             else if (packet instanceof GameScore)
             {
                 GameScore gs = (GameScore)packet;
+                scores = gs.getScores();
 
-                if (gs.getClient() == clientID)
-                {
-                    myScore++;
+                for (Map.Entry<UUID, Integer> entry : scores.entrySet()) {
+                    UUID key = entry.getKey();
+                    int value = entry.getValue();
+
+                    if (key.equals(clientID))
+                        myScore = value;
+                    else
+                        enemyScore = value;
+                    //System.out.println(key.equals(clientID) ? "My score: " : "Enemy score: "+value);
                 }
-                else
-                    enemyScore++;
+            }
+            else if (packet instanceof GameEnded)
+            {
+                GameEnded ge = (GameEnded)packet;
+                if (ge.getReason() == GameEnded.EndReason.SCORE)
+                {
+                    if (ge.getWinner().equals(clientID))
+                        myScore++;
+                    else
+                        enemyScore++;
+                }
+                if (!gameEnded)
+                {
+                    gameEnded = true;
+                    endReason = ge.getReason();
+                } // Anders is game al klaar
             }
         }
     }
