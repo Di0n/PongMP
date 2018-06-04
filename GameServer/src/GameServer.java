@@ -18,7 +18,7 @@ public class GameServer extends Engine
 {
     public static void main(String[] args)
     {
-        new GameServer(30).start();
+        new GameServer().start();
     }
 
     private final int MAX_PACKET_SIZE = 512;
@@ -31,9 +31,9 @@ public class GameServer extends Engine
     private boolean gameEnded;
 
 
-    public GameServer(int tickRate)
+    public GameServer()
     {
-        super(tickRate);
+        super();
         ball = new Ball(20);
 
         leftPaddle = new Paddle(20, 100);

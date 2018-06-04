@@ -34,7 +34,7 @@ public class Pong extends Game
         //new Pong().start();
     }
 
-    private static final int FPS = 59;
+    private static final int FPS = 144;
     private static final String GAME_NAME = "Pong";
 
     private final FrameRateCounter frameRateCounter;
@@ -188,7 +188,7 @@ public class Pong extends Game
             socket.send(Utils.createByteArray(playerInput));
             lastUp = false;
         }
-        if (keyListener.isKeyDown(KeyEvent.VK_DOWN))
+        else if (keyListener.isKeyDown(KeyEvent.VK_DOWN))
         {
             //leftPaddle.velocity = paddleVelocity;
             ///leftPaddle.position = leftPaddle.position.add(leftPaddle.velocity.multiply(deltaTime));
@@ -207,11 +207,6 @@ public class Pong extends Game
             socket.send(Utils.createByteArray(playerInput));
             lastDown = false;
         }
-
-        if (keyListener.isKeyDown(KeyEvent.VK_SPACE))
-        {
-            ball.velocity = new Vector2(200, 100);
-        }
     }
 
     private GameEnded.EndReason endReason;
@@ -225,40 +220,42 @@ public class Pong extends Game
         g2d.setColor(Color.WHITE);
         g2d.drawString(""+Math.round(frameRateCounter.getAverageFramesPerSecond()), 10, 10);
 
+
         int sideX = (paddleIndex == 0) ? getWidth() / 3 : getWidth() - (getWidth() / 4);
         int enemySideX = (paddleIndex == 0) ? getWidth() - (getWidth() / 4) : getWidth() / 3;
         int sideY = 10;
-        g2d.drawString(""+myScore, sideX, sideY);
-        g2d.drawString(""+enemyScore, enemySideX, sideY);
+
+        g2d.drawString(Integer.toString(myScore), sideX, sideY);
+        g2d.drawString(Integer.toString(enemyScore), enemySideX, sideY);
 
         if (gameEnded)
         {
-            if (myScore > enemyScore)
+            if (endReason == GameEnded.EndReason.SCORE)
             {
-                Hud.drawTextThisFrame(g2d, "You won!", 50,
-                        new Point2D.Double(getWidth()/2, getHeight()/2),
-                        "Magneto", Font.BOLD);
-            }
-            else if (myScore == enemyScore)
-            {
-                Hud.drawTextThisFrame(g2d, "It's a tie!", 50,
-                        new Point2D.Double(getWidth()/2, getHeight()/2),
-                        "Magneto", Font.BOLD);
-            }
-            else if (enemyScore > myScore && endReason == GameEnded.EndReason.FORFEIT)
-            {
-                Hud.drawTextThisFrame(g2d, "Enemy left the game!", 50,
-                        new Point2D.Double(getWidth()/2, getHeight()/2),
-                        "Magneto", Font.BOLD);
+                if (myScore > enemyScore)
+                {
+                    Hud.drawTextThisFrame(g2d, "You won!", 50,
+                            new Point2D.Double(getWidth() / 2, getHeight() / 2),
+                            "Magneto", Font.BOLD);
+                } else if (myScore == enemyScore)
+                {
+                    Hud.drawTextThisFrame(g2d, "It's a tie!", 50,
+                            new Point2D.Double(getWidth() / 2, getHeight() / 2),
+                            "Magneto", Font.BOLD);
+                }
+                else
+                {
+                    Hud.drawTextThisFrame(g2d, "You lost!", 50,
+                            new Point2D.Double(getWidth() / 2, getHeight() / 2),
+                            "Magneto", Font.BOLD);
+                }
             }
             else
-            {
-                Hud.drawTextThisFrame(g2d, "You lost!", 50,
-                        new Point2D.Double(getWidth()/2, getHeight()/2),
+                Hud.drawTextThisFrame(g2d, "Enemy left the game!", 50,
+                        new Point2D.Double(getWidth() / 2, getHeight() / 2),
                         "Magneto", Font.BOLD);
-            }
         }
-        g2d.setColor(Color.RED);
+        //g2d.setColor(Color.RED);
         //DebugDraw.draw(g2d, gameObjects);
     }
 
@@ -287,29 +284,28 @@ public class Pong extends Game
                     UUID key = entry.getKey();
                     int value = entry.getValue();
 
-                    System.out.println(key.equals(clientID) ? "My score: " : "Enemy score: "+value);
-                    // ...
+                    if (key.equals(clientID))
+                        myScore = value;
+                    else
+                        enemyScore = value;
+                    //System.out.println(key.equals(clientID) ? "My score: " : "Enemy score: "+value);
                 }
-                /*if (gs.getClient().equals(clientID))
-                {
-                    myScore++;
-                    System.out.println("Point for me");
-                }
-                else
-                {
-                    enemyScore++;
-                    System.out.println("Point for enemy");
-                }*/
             }
             else if (packet instanceof GameEnded)
             {
                 GameEnded ge = (GameEnded)packet;
                 if (ge.getReason() == GameEnded.EndReason.SCORE)
                 {
-                    System.out.println(ge.getWinner().equals(clientID) ? "You won" : "Enemy won");
+                    if (ge.getWinner().equals(clientID))
+                        myScore++;
+                    else
+                        enemyScore++;
                 }
-                gameEnded = true;
-                endReason = ge.getReason();
+                if (!gameEnded)
+                {
+                    gameEnded = true;
+                    endReason = ge.getReason();
+                } // Anders is game al klaar
             }
         }
     }

@@ -9,6 +9,8 @@ import utils.Utils;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -20,26 +22,31 @@ public abstract class Engine
     private final InetSocketAddress MASTER_SERVER_ADDRESS = new InetSocketAddress("master.anveon.nl", 45555);
     private final int MAX_PACKET_SIZE = 512;
     private final int SERVER_PORT = 14567;
-    private final long DC_TIME = 1000000; // 1000 seconden
+    private final long DC_TIME = 100000; // 10 seconden
 
     private final String serverBannerURL = "http://brandmark.io/logo-rank/random/pepsi.png";
     private final String serverInfo = "Server info...";
 
     private final Timer gameTimer;
     private final UDPServer socket;
-    private final int tickRate;
+    private int tickRate;
     private ByteBuffer buffer;
 
     protected ArrayList<Player> players;
 
-    public Engine(int tickRate)
+    public Engine()
     {
+        this.tickRate = 30; // Default
         this.gameTimer = new Timer();
-        this.tickRate = tickRate;
         players = new ArrayList<>();
         buffer = ByteBuffer.allocate(MAX_PACKET_SIZE);
         socket = new UDPServer(SERVER_PORT, false);
         socket.initialize();
+    }
+
+    private final void readIniSettings()
+    {
+
     }
 
     public final void start()
